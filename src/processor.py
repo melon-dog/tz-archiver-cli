@@ -146,11 +146,11 @@ class TokenProcessor:
 
     def _archive_cid_with_rate_limit(self, cid: str, state: AppState) -> None:
         """Archive a CID while respecting rate limits."""
-        logger.info(f"Processing CID: {cid}", timestamp=False)
+        logger.info(f"Processing CID: {cid}")
 
         # First check if already archived (this doesn't count for rate limit)
         if self.archiver.is_already_archived(cid):
-            logger.success("Already archived", timestamp=False)
+            logger.success("Already archived")
             self.stats.already_archived += 1
             self.state_manager.save_processed_cid(cid, state)
             return
@@ -195,7 +195,7 @@ class TokenProcessor:
         # Process each CID
         for cid in cids:
             if self.state_manager.is_processed(cid, state):
-                logger.warning(f"Already processed CID: {cid}", timestamp=False)
+                logger.warning(f"Already processed CID: {cid}")
                 self.stats.skipped_cids += 1
                 continue
 
