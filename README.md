@@ -1,13 +1,13 @@
 # TZ Archiver CLI
 
-A professional Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This tool fetches NFT metadata from Tezos wallets using the TzKT API and automatically archives IPFS-hosted artifacts to ensure long-term preservation.
+A Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This tool fetches NFT metadata from Tezos wallets using the TzKT API and automatically archives IPFS-hosted artifacts to ensure long-term preservation.
 
 ## ✨ Features
 
 - 🔍 **Multi-source Token Discovery**: Fetches tokens from mints, balances, and contract associations
 - 🌐 **Wayback Machine Integration**: Automatic archiving with rate limiting (12 captures/minute)
 - 💾 **Persistent State Management**: Resume interrupted sessions with automatic state recovery
-- 🎨 **Colored Logging**: Professional logging system with timestamps and Windows ANSI support
+- 🎨 **Colored Logging**: Advanced logging system with timestamps and Windows ANSI support
 - 🚀 **Concurrent Processing**: Up to 4 concurrent archiving processes with smart queue management
 - 🕷️ **Spider Mode**: Continuous random token discovery for comprehensive archiving
 - ⚡ **Smart Rate Limiting**: Only actual archiving operations count towards rate limits
@@ -137,7 +137,7 @@ tz-archiver-cli/
 │   │   └── errors_cids.json      # Failed CIDs for retry
 │   ├── utils/                    # Utility modules
 │   │   ├── __init__.py           # Package initialization
-│   │   ├── logger.py             # Professional colored logging system
+│   │   ├── logger.py             # Colored logging system
 │   │   └── tzkt.py               # TzKT API client with full type hints
 │   ├── main.py                   # CLI entry point with argument parsing
 │   ├── config.py                 # Centralized configuration management
@@ -151,7 +151,7 @@ tz-archiver-cli/
 
 ## 🏗️ Architecture
 
-The application follows professional software architecture principles:
+The application follows solid software architecture principles:
 
 - **Dependency Injection**: Clean separation of concerns
 - **Strategy Pattern**: Pluggable components for different modes
@@ -166,7 +166,7 @@ The application follows professional software architecture principles:
 - **`archiver.py`**: Wayback Machine integration with concurrency control
 - **`state_manager.py`**: Atomic file operations for data persistence
 - **`config.py`**: Centralized configuration with environment variable support
-- **`utils/logger.py`**: Professional logging with ANSI colors and Windows compatibility
+- **`utils/logger.py`**: Advanced logging with ANSI colors and Windows compatibility
 - **`utils/tzkt.py`**: Fully typed TzKT API client with comprehensive dataclasses
 
 ## 🌐 API Integration
@@ -204,7 +204,7 @@ Data format:
 
 ## 🎨 Logging System
 
-Professional logging with:
+Advanced logging with:
 - **Colored output**: Different colors for different log levels
 - **Timestamps**: Precise timing information
 - **Windows compatibility**: ANSI color support detection

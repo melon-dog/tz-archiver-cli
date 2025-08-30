@@ -1,7 +1,7 @@
 """
 TZ Archiver CLI - Archive Tezos NFTs to Wayback Machine
 
-A professional command-line tool for archiving Tezos NFT artifacts to the Internet Archive.
+A command-line tool for archiving Tezos NFT artifacts to the Internet Archive.
 Supports wallet-specific archiving and random token discovery (spider mode).
 """
 

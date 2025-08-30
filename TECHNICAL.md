@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-The TZ Archiver CLI follows a modular, professional architecture with clear separation of concerns:
+The TZ Archiver CLI follows a modular architecture with clear separation of concerns:
 
 ```
 src/
@@ -14,7 +14,7 @@ src/
 ├── processor.py             # Token processing and business logic
 ├── utils/                   # Utility modules
 │   ├── __init__.py          # Utils package exports
-│   ├── logger.py            # Professional logging system
+│   ├── logger.py            # Advanced logging system
 │   └── tzkt.py              # TzKT API client
 └── data/                    # Runtime data storage
     ├── processed_cids.json  # Successfully processed CIDs
@@ -33,7 +33,7 @@ src/
 
 ### Utility Modules
 
-- **`utils/logger.py`**: Professional logging with colored output and timestamps
+- **`utils/logger.py`**: Advanced logging with colored output and timestamps
 - **`utils/tzkt.py`**: Typed TzKT API client for Tezos blockchain data
 
 ## Design Patterns Used
@@ -164,7 +164,7 @@ Add hooks in the logger module for external monitoring systems.
 ### Code Style
 - Type hints throughout
 - Comprehensive docstrings
-- Professional error messages
+- Clear error messages
 - Consistent naming conventions
 
 ### Version Control
