@@ -92,27 +92,25 @@ class WaybackArchiver:
         normalized_cid = self._normalize_cid(cid)
         url = self._build_ipfs_url(normalized_cid)
 
-        logger.info(f"Submitting for archiving: {normalized_cid}", timestamp=False)
+        logger.info(f"Submitting for archiving: {normalized_cid}")
 
         # Wait for available slot and acquire it
         while (
             self.concurrency_manager.current_count
             >= self.concurrency_manager.max_concurrent
         ):
-            logger.warning(
-                f"Waiting for available slot (CID: {normalized_cid})", timestamp=False
-            )
+            logger.warning(f"Waiting for available slot (CID: {normalized_cid})")
             time.sleep(1)
 
         self.concurrency_manager.acquire()
-        logger.info("Archiving to Wayback Machine...", timestamp=False)
+        logger.info("Archiving to Wayback Machine...")
 
         def on_save_end(status: WayBackStatus) -> None:
             """Handle archiving completion."""
             self.concurrency_manager.release()
 
             if status.message:
-                logger.info(f"Message: {status.message}", timestamp=False)
+                logger.info(f"Message: {status.message}")
 
             result = ArchiveResult(
                 cid=normalized_cid,
@@ -122,12 +120,12 @@ class WaybackArchiver:
             )
 
             if status.status == "success":
-                logger.success("Successfully archived", timestamp=False)
+                logger.success("Successfully archived")
             elif status.status == "pending":
-                logger.warning("Archiving in progress...", timestamp=False)
+                logger.warning("Archiving in progress...")
                 result.success = True  # Pending is considered success
             elif status.status == "error":
-                logger.error("Failed to archive", timestamp=False)
+                logger.error("Failed to archive")
                 result.error = status.message
 
             if on_complete:
@@ -143,7 +141,7 @@ class WaybackArchiver:
             )
         except Exception as e:
             self.concurrency_manager.release()
-            logger.error(f"Failed to submit for archiving: {e}", timestamp=False)
+            logger.error(f"Failed to submit for archiving: {e}")
             if on_complete:
                 result = ArchiveResult(
                     cid=normalized_cid,
