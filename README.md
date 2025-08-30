@@ -1,22 +1,25 @@
-# TEZOS ARCHIVER
+# TZ Archiver CLI
 
-## Data Persistence
+A professional Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This tool fetches NFT metadata from Tezos wallets using the TzKT API and automatically archives IPFS-hosted artifacts to ensure long-term preservation.
 
-The tool automatically creates a `data/` folder in the source directory to store:
+## ✨ Features
 
-- **processed_cids.json**: List of successfully processed IPFS CIDs
-- **errors_cids.json**: List of CIDs that failed to archive (for manual retry)
+- 🔍 **Multi-source Token Discovery**: Fetches tokens from mints, balances, and contract associations
+- 🌐 **Wayback Machine Integration**: Automatic archiving with rate limiting (12 captures/minute)
+- 💾 **Persistent State Management**: Resume interrupted sessions with automatic state recovery
+- 🎨 **Colored Logging**: Professional logging system with timestamps and Windows ANSI support
+- 🚀 **Concurrent Processing**: Up to 4 concurrent archiving processes with smart queue management
+- 🕷️ **Spider Mode**: Continuous random token discovery for comprehensive archiving
+- ⚡ **Smart Rate Limiting**: Only actual archiving operations count towards rate limits
+- 🔄 **Resume Capability**: Automatically continues from where previous sessions left off
 
-
-A Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This tool fetches NFT metadata from Tezos wallets using the TzKT API and automatically archives IPFS-hosted artifacts to ensure long-term preservation.
-
-## Prerequisites
+## 📋 Prerequisites
 
 - Python 3.10+
 - Internet Archive account with API access
 - Required Python packages (see installation)
 
-## Installation
+## 🚀 Installation
 
 1. Clone the repository:
 ```bash
@@ -29,82 +32,102 @@ cd tz-archiver-cli
 pip install requests python-dotenv wayback-utils
 ```
 
-3. Create a `.env` file with your Internet Archive credentials:
+3. Create a `.env` file in the `src/` directory with your Internet Archive credentials:
 ```env
 ARCHIVE_ACCESS=your_access_key_here
 ARCHIVE_SECRET=your_secret_key_here
 ```
 
-## Usage
+## 📖 Usage
 
 ### Basic Usage
 
 Archive NFTs from a specific Tezos wallet:
 ```bash
-python src/tz_archiver_cli.py -w tz1U7C2NVwbhdvG3fJixLLUWUyZHuXWNiF7V
+python src/main.py -w tz1U7C2NVwbhdvG3fJixLLUWUyZHuXWNiF7V
 ```
 
 ### Spider Mode (Random Discovery)
 
 Run without specifying a wallet to archive random tokens:
 ```bash
-python src/tz_archiver_cli.py
+python src/main.py
 ```
 
 ### Advanced Usage
 
 Specify a custom limit for the number of tokens to process:
 ```bash
-python src/tz_archiver_cli.py -w tz1U7C2NVwbhdvG3fJixLLUWUyZHuXWNiF7V -l 500
+python src/main.py -w tz1U7C2NVwbhdvG3fJixLLUWUyZHuXWNiF7V -l 500
 ```
 
 ### Command-line Options
 
 - `-w, --wallet` (optional): Tezos wallet address (e.g., tz1...). If not provided, runs in spider mode
 - `-l, --limit` (optional): Number of tokens to process (default: 10,000)
-- `-h, --help`: Show help message
+- `-h, --help`: Show detailed help message with examples
 
-## How It Works
+## 🔧 How It Works
 
-1. **Token Discovery**: The tool queries the TzKT API to find:
-   - Tokens minted by the wallet
-   - Tokens currently owned by the wallet
-   - Tokens from contracts associated with the wallet
+### 1. Token Discovery
+The tool queries the TzKT API to find:
+- **Minted tokens**: Tokens created by the wallet
+- **Owned tokens**: Tokens currently in the wallet
+- **Contract tokens**: Tokens from contracts associated with the wallet
 
-2. **IPFS Detection**: Scans token metadata for `artifactUri` fields containing IPFS URLs
+### 2. IPFS Detection
+Scans token metadata for `artifactUri` fields containing IPFS URLs (`ipfs://...`)
 
-3. **Archiving Process**: For each IPFS artifact:
-   - Converts IPFS CID to HTTP URL via `ipfs.fileship.xyz`
-   - Checks if already archived in Wayback Machine
-   - Submits new URLs for archiving with custom parameters
+### 3. Smart Archiving Process
+For each IPFS artifact:
+- **Pre-check**: Verifies if already archived (doesn't count for rate limit)
+- **Rate limiting**: Only applied to actual archiving operations
+- **URL conversion**: Converts IPFS CID to HTTP URL via `ipfs.fileship.xyz`
+- **Wayback submission**: Submits for archiving with optimized parameters
 
-4. **Concurrency Control**: Maintains up to 4 concurrent archiving processes to respect rate limits
+### 4. Concurrent Processing
+- Maintains up to 4 concurrent archiving processes
+- Smart queue management with available slot detection
+- Automatic retry logic for failed operations
 
-5. **State Persistence**: All processed CIDs and errors are saved to disk in the `src/data/` folder:
-   - `processed_cids.json`: Successfully processed IPFS CIDs
-   - `errors_cids.json`: CIDs that failed to archive
+### 5. State Persistence
+All data is automatically saved to `src/data/`:
+- `processed_cids.json`: Successfully processed IPFS CIDs
+- `errors_cids.json`: CIDs that failed to archive (for manual retry)
 
-6. **Resume Capability**: The tool automatically loads previous session data and continues from where it left off
+### 6. Resume Capability
+The tool automatically:
+- Loads previous session data on startup
+- Skips already processed CIDs
+- Continues from where it left off
 
-## Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
-- `ARCHIVE_ACCESS`: Internet Archive access key
-- `ARCHIVE_SECRET`: Internet Archive secret key
+Create a `.env` file in the `src/` directory:
+```env
+ARCHIVE_ACCESS=your_access_key_here
+ARCHIVE_SECRET=your_secret_key_here
+```
+
+### Rate Limiting
+
+The tool implements intelligent rate limiting:
+- **Wayback Machine limit**: 12 captures/minute (configurable)
+- **Check operations**: `wayback.indexed()` calls don't count towards limit
+- **Archive operations**: Only `wayback.save()` calls count towards limit
+- **Sliding window**: 60-second rolling window for accurate rate tracking
 
 ### Archiving Parameters
 
-The tool uses these Wayback Machine settings:
+Optimized Wayback Machine settings:
 - `js_behavior_timeout`: 7 seconds
-- `delay_wb_availability`: False
+- `delay_wb_availability`: False  
 - `if_not_archived_within`: 31,536,000 seconds (1 year)
+- `max_concurrent_processes`: 4
 
-### Concurrency Settings
-
-- `MAX_CONCURRENT_PROCESSES`: 4 (configurable in source)
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 tz-archiver-cli/
@@ -114,47 +137,137 @@ tz-archiver-cli/
 │   │   └── errors_cids.json      # Failed CIDs for retry
 │   ├── utils/                    # Utility modules
 │   │   ├── __init__.py           # Package initialization
-│   │   ├── logger.py             # Colored logging system
-│   │   └── tzkt.py               # TzKT API client with typed responses
-│   ├── tz_archiver_cli.py        # Main CLI application
+│   │   ├── logger.py             # Professional colored logging system
+│   │   └── tzkt.py               # TzKT API client with full type hints
+│   ├── main.py                   # CLI entry point with argument parsing
+│   ├── config.py                 # Centralized configuration management
+│   ├── processor.py              # Core business logic and rate limiting
+│   ├── archiver.py               # Wayback Machine integration
+│   ├── state_manager.py          # Persistent state management
 │   └── .env                      # Environment variables (create this)
-├── README.md                     # This file
+├── README.md                     # This documentation
 └── requirements.txt              # Python dependencies (optional)
 ```
 
-## API Integration
+## 🏗️ Architecture
+
+The application follows professional software architecture principles:
+
+- **Dependency Injection**: Clean separation of concerns
+- **Strategy Pattern**: Pluggable components for different modes
+- **Observer Pattern**: Callback-based result handling
+- **Single Responsibility**: Each module has a focused purpose
+- **Type Safety**: Full type hints throughout the codebase
+
+### Core Components
+
+- **`main.py`**: CLI entry point with comprehensive argument validation
+- **`processor.py`**: Token processing with smart rate limiting
+- **`archiver.py`**: Wayback Machine integration with concurrency control
+- **`state_manager.py`**: Atomic file operations for data persistence
+- **`config.py`**: Centralized configuration with environment variable support
+- **`utils/logger.py`**: Professional logging with ANSI colors and Windows compatibility
+- **`utils/tzkt.py`**: Fully typed TzKT API client with comprehensive dataclasses
+
+## 🌐 API Integration
 
 ### TzKT API
 
-The tool integrates with the [TzKT API](https://api.tzkt.io/) to fetch Tezos blockchain data:
-
-- **Mints**: `/v1/tokens?firstMinter={address}`
-- **Balances**: `/v1/tokens/balances?account={address}`
-- **Contract Tokens**: `/v1/tokens?contract={address}`
+Integrates with [TzKT API](https://api.tzkt.io/) for Tezos blockchain data:
+- **Mints**: `/v1/tokens?firstMinter={address}&limit={limit}`
+- **Balances**: `/v1/tokens/balances?account={address}&limit={limit}`
+- **Contract Tokens**: `/v1/tokens?contract={address}&limit={limit}`
+- **Random Tokens**: `/v1/tokens?select=*&limit={limit}&sort=random`
 
 ### Wayback Machine API
 
-Uses the `wayback-utils` library to interact with the Internet Archive's Save Page Now API.
+Uses `wayback-utils` library with intelligent rate limiting:
+- **Check Archive Status**: `wayback.indexed()` (doesn't count for rate limit)
+- **Submit for Archiving**: `wayback.save()` (counts for rate limit)
+- **Rate Limiting**: 12 captures/minute with sliding window algorithm
 
+## 📊 Data Persistence
 
-## Contributing
+The tool automatically creates a `data/` folder in the source directory to store:
+
+- **processed_cids.json**: List of successfully processed IPFS CIDs with timestamps
+- **errors_cids.json**: List of CIDs that failed to archive (for manual retry)
+
+Data format:
+```json
+{
+  "processed_cids": ["Qm...", "bafy..."],
+  "errors_cids": ["Qm...", "bafy..."],
+  "last_updated": "2025-08-30T15:30:45Z"
+}
+```
+
+## 🎨 Logging System
+
+Professional logging with:
+- **Colored output**: Different colors for different log levels
+- **Timestamps**: Precise timing information
+- **Windows compatibility**: ANSI color support detection
+- **Structured levels**: INFO, SUCCESS, WARNING, ERROR
+- **Module identification**: Clear source module indication
+
+## 🚀 Performance Features
+
+- **Smart caching**: Avoids reprocessing already handled CIDs
+- **Concurrent processing**: Up to 4 parallel archiving operations
+- **Rate limit optimization**: Only counts actual archiving requests
+- **Memory efficient**: Streams data and processes in batches
+- **Resumable sessions**: No work lost on interruption
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with proper type hints
 4. Add tests if applicable
-5. Submit a pull request
+5. Ensure code follows the established patterns
+6. Submit a pull request
 
-## License
+## 📄 License
 
-MIT 
+MIT License - see LICENSE file for details
 
-## Notes
+## ⚠️ Important Notes
 
-- The tool respects rate limits with built-in delays (12 captures/minute Wayback Machine limit)
-- Large collections may take significant time to process
-- Internet Archive archiving is asynchronous - results may not be immediately available
+- **Rate Limits**: The tool respects Wayback Machine's 12 captures/minute limit
+- **Processing Time**: Large collections may take significant time to process
+- **Asynchronous Results**: Internet Archive archiving is asynchronous - results may not be immediately available
+- **Network Dependency**: Requires stable internet connection for API calls
+- **Storage**: Local state files grow with processed CID count
+
+## 🏆 Advanced Usage Examples
+
+### Resume a Previous Session
+```bash
+# Simply run the same command - the tool automatically resumes
+python src/main.py -w tz1YourWalletAddress
+```
+
+### Monitor Rate Limiting
+```bash
+# The tool displays current rate status:
+# "Archiving CID (rate: 8/12/min): QmHashHere"
+```
+
+### Process Multiple Wallets
+```bash
+# Process different wallets sequentially
+python src/main.py -w tz1FirstWallet -l 1000
+python src/main.py -w tz2SecondWallet -l 1000
+```
+
+### Spider Mode for Discovery
+```bash
+# Continuous random token discovery
+python src/main.py
+# Press Ctrl+C to stop gracefully
+```
 
 ---
 
-Generated with ❤️ for the Tezos NFT community
+*Generated with ❤️ for the Tezos NFT community*
