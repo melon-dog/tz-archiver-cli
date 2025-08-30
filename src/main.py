@@ -26,7 +26,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s -w tz1ABC123...                    # Archive specific wallet
+  %(prog)s -w tz1ABC123...                   # Archive specific wallet
   %(prog)s -w tz1ABC123... -l 500            # Limit to 500 tokens
   %(prog)s                                   # Spider mode (random discovery)
 
