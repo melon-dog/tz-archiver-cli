@@ -4,6 +4,7 @@ Handles archiving of URLs to the Internet Archive with proper concurrency contro
 """
 
 import time
+import threading
 from typing import Callable, Optional
 from dataclasses import dataclass
 
@@ -28,27 +29,64 @@ class ArchiveResult:
 
 
 class ConcurrencyManager:
-    """Manages concurrent processing limits."""
+    """Manages concurrent processing limits with thread safety."""
 
     def __init__(self, max_concurrent: int = Config.MAX_CONCURRENT_PROCESSES):
         self.max_concurrent = max_concurrent
         self.current_count = 0
+        self._lock = threading.Lock()
 
-    def acquire(self) -> None:
-        """Acquire a processing slot, waiting if necessary."""
-        while self.current_count >= self.max_concurrent:
+    def acquire(self) -> bool:
+        """
+        Acquire a processing slot, waiting if necessary.
+        Returns True if slot acquired, False if timeout.
+        """
+        timeout_seconds = 30  # Maximum wait time
+        start_time = time.time()
+
+        while True:
+            with self._lock:
+                if self.current_count < self.max_concurrent:
+                    self.current_count += 1
+                    logger.info(
+                        f"Slot acquired ({self.current_count}/{self.max_concurrent})",
+                        timestamp=False,
+                    )
+                    return True
+
+            # Check for timeout
+            if time.time() - start_time > timeout_seconds:
+                logger.error(
+                    f"Timeout waiting for available slot after {timeout_seconds}s"
+                )
+                return False
+
+            logger.warning(
+                f"Waiting for available slot ({self.current_count}/{self.max_concurrent})",
+                timestamp=False,
+            )
             time.sleep(1)
-        self.current_count += 1
 
     def release(self) -> None:
         """Release a processing slot."""
-        if self.current_count > 0:
-            self.current_count -= 1
+        with self._lock:
+            if self.current_count > 0:
+                self.current_count -= 1
+                logger.info(
+                    f"Slot released ({self.current_count}/{self.max_concurrent})",
+                    timestamp=False,
+                )
 
     @property
     def available_slots(self) -> int:
         """Get number of available processing slots."""
-        return max(0, self.max_concurrent - self.current_count)
+        with self._lock:
+            return max(0, self.max_concurrent - self.current_count)
+
+    def get_status(self) -> str:
+        """Get current status string."""
+        with self._lock:
+            return f"{self.current_count}/{self.max_concurrent} slots in use"
 
 
 class WaybackArchiver:
@@ -92,44 +130,52 @@ class WaybackArchiver:
         normalized_cid = self._normalize_cid(cid)
         url = self._build_ipfs_url(normalized_cid)
 
-        logger.info(f"Submitting for archiving: {normalized_cid}")
+        logger.info(f"Requesting slot for archiving: {normalized_cid}", timestamp=False)
 
-        # Wait for available slot and acquire it
-        while (
-            self.concurrency_manager.current_count
-            >= self.concurrency_manager.max_concurrent
-        ):
-            logger.warning(f"Waiting for available slot (CID: {normalized_cid})")
-            time.sleep(1)
+        # Try to acquire a slot with timeout
+        if not self.concurrency_manager.acquire():
+            # Timeout occurred
+            error_msg = f"Failed to acquire processing slot for {normalized_cid}"
+            logger.error(error_msg)
+            if on_complete:
+                result = ArchiveResult(
+                    cid=normalized_cid,
+                    success=False,
+                    already_archived=False,
+                    error=error_msg,
+                )
+                on_complete(result)
+            return
 
-        self.concurrency_manager.acquire()
-        logger.info("Archiving to Wayback Machine...")
+        logger.info(f"Submitting for archiving: {normalized_cid}", timestamp=False)
 
         def on_save_end(status: WayBackStatus) -> None:
             """Handle archiving completion."""
-            self.concurrency_manager.release()
+            try:
+                if status.message:
+                    logger.info(f"Message: {status.message}", timestamp=False)
 
-            if status.message:
-                logger.info(f"Message: {status.message}")
+                result = ArchiveResult(
+                    cid=normalized_cid,
+                    success=status.status == "success",
+                    already_archived=False,
+                    message=status.message,
+                )
 
-            result = ArchiveResult(
-                cid=normalized_cid,
-                success=status.status == "success",
-                already_archived=False,
-                message=status.message,
-            )
+                if status.status == "success":
+                    logger.success("Successfully archived", timestamp=False)
+                elif status.status == "pending":
+                    logger.warning("Archiving in progress...", timestamp=False)
+                    result.success = True  # Pending is considered success
+                elif status.status == "error":
+                    logger.error("Failed to archive", timestamp=False)
+                    result.error = status.message
 
-            if status.status == "success":
-                logger.success("Successfully archived")
-            elif status.status == "pending":
-                logger.warning("Archiving in progress...")
-                result.success = True  # Pending is considered success
-            elif status.status == "error":
-                logger.error("Failed to archive")
-                result.error = status.message
-
-            if on_complete:
-                on_complete(result)
+                if on_complete:
+                    on_complete(result)
+            finally:
+                # Always release the slot, even if callback fails
+                self.concurrency_manager.release()
 
         try:
             self.wayback.save(
@@ -140,13 +186,15 @@ class WaybackArchiver:
                 on_result=on_save_end,
             )
         except Exception as e:
+            # Release slot immediately on exception
             self.concurrency_manager.release()
-            logger.error(f"Failed to submit for archiving: {e}")
+            error_msg = f"Failed to submit for archiving: {e}"
+            logger.error(error_msg, timestamp=False)
             if on_complete:
                 result = ArchiveResult(
                     cid=normalized_cid,
                     success=False,
                     already_archived=False,
-                    error=str(e),
+                    error=error_msg,
                 )
                 on_complete(result)
