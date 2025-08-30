@@ -51,8 +51,7 @@ class RateLimiter:
             if wait_time > 0:
                 logger.warning(
                     f"Rate limit reached ({self.max_requests}/min). "
-                    f"Waiting {wait_time:.1f} seconds...",
-                    timestamp=False,
+                    f"Waiting {wait_time:.1f} seconds..."
                 )
                 time.sleep(wait_time)
                 # Clean up again after waiting
@@ -161,8 +160,7 @@ class TokenProcessor:
         # Log current rate status
         current_rate = self.rate_limiter.get_current_rate()
         logger.info(
-            f"Archiving CID (rate: {current_rate}/{Config.WAYBACK_RATE_LIMIT}/min): {cid}",
-            timestamp=False,
+            f"Archiving CID (rate: {current_rate}/{Config.WAYBACK_RATE_LIMIT}/min): {cid}"
         )
 
         # Record that we're making a request (only for actual archiving)
