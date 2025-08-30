@@ -183,7 +183,7 @@ class WaybackArchiver:
                 if_not_archived_within=Config.WAYBACK_IF_NOT_ARCHIVED_WITHIN,
                 on_result=on_save_end,
             )
-            if save_data.status_code is not 200 or save_data.job_id is None:
+            if save_data.job_id is None:
                 if save_data.message is not None:
                     logger.error(f"Failed to submit for archiving: {save_data.message}")
                 else:
