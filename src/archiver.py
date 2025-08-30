@@ -41,7 +41,7 @@ class ConcurrencyManager:
         Acquire a processing slot, waiting if necessary.
         Returns True if slot acquired, False if timeout.
         """
-        timeout_seconds = 30  # Maximum wait time
+        timeout_seconds = 120  # Maximum wait time
         start_time = time.time()
 
         while True:
@@ -177,6 +177,7 @@ class WaybackArchiver:
         try:
             self.wayback.save(
                 url,
+                timeout=60,
                 js_behavior_timeout=Config.WAYBACK_JS_TIMEOUT,
                 delay_wb_availability=Config.WAYBACK_DELAY_AVAILABILITY,
                 if_not_archived_within=Config.WAYBACK_IF_NOT_ARCHIVED_WITHIN,
