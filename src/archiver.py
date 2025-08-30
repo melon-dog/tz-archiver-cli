@@ -188,8 +188,8 @@ class WaybackArchiver:
                     logger.error(f"Failed to submit for archiving: {save_data.message}")
                 else:
                     logger.error(f"Failed to submit for archiving")
-
                 self.concurrency_manager.release()
+
         except Exception as e:
             # Release slot immediately on exception
             self.concurrency_manager.release()
