@@ -4,7 +4,7 @@ Handles token discovery, filtering, and orchestrates the archiving process.
 """
 
 import time
-import hashlib
+import random
 from typing import List, Optional, Callable, Deque
 from dataclasses import dataclass
 from collections import deque
@@ -275,63 +275,41 @@ class WalletProcessor:
 
 
 class SpiderProcessor:
-    """Processes tokens using deterministic coverage algorithm."""
+    """Processes tokens using bidirectional exploration algorithm."""
 
     def __init__(self, processor: TokenProcessor, state_manager: StateManager):
         self.processor = processor
         self.state_manager = state_manager
 
-        # Deterministic walk parameters - will be loaded/initialized
-        self.total_token_space = None
-        self.current_position = None
-        self.step_size = None
-        self.start_position = None
-        self.tokens_visited = 0
-        self.seed_data = None
-
-        # Large prime numbers for step size to ensure good coverage
-        self.prime_steps = [
-            7919,
-            12911,
-            15073,
-            18443,
-            20399,
-            22447,
-            25013,
-            27697,
-            30089,
-            32609,
-            35171,
-            37549,
-            40009,
-            42589,
-            45121,
-            47737,
-        ]
+        # Bidirectional algorithm state - will be loaded/initialized
+        self.seed = None
+        self.iteration_count = 0
+        self.is_positive_direction = True
+        self.max_tokens = HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS
+        self.batch_size = Config.DEFAULT_SPIDER_BATCH_SIZE
 
     def _load_spider_state(self, state: AppState) -> bool:
         """Load spider state from persistent storage."""
         spider_state = state.spider_state
 
-        if spider_state and spider_state.current_position is not None:
+        if spider_state and spider_state.seed is not None:
             # Resume from saved state
-            self.total_token_space = spider_state.total_token_space
-            self.current_position = spider_state.current_position
-            self.step_size = spider_state.step_size
-            self.start_position = spider_state.start_position
-            self.tokens_visited = spider_state.tokens_visited
-            self.seed_data = spider_state.seed_data
+            self.seed = spider_state.seed
+            self.iteration_count = spider_state.iteration_count or 0
+            self.is_positive_direction = (
+                spider_state.is_positive_direction
+                if spider_state.is_positive_direction is not None
+                else True
+            )
 
             logger.success("Resuming spider mode from previous session:")
-            logger.info(f"   • Token space: {self.total_token_space:,}")
-            logger.info(f"   • Current position: {self.current_position:,}")
-            logger.info(f"   • Start position: {self.start_position:,}")
-            logger.info(f"   • Step size: {self.step_size:,}")
-            logger.info(f"   • Tokens visited: {self.tokens_visited:,}")
-
-            if self.total_token_space and self.tokens_visited > 0:
-                coverage = (self.tokens_visited / self.total_token_space) * 100
-                logger.info(f"   • Previous coverage: {coverage:.2f}%")
+            logger.info(f"   • Exploration seed: {self.seed:,}")
+            logger.info(f"   • Iteration count: {self.iteration_count:,}")
+            logger.info(
+                f"   • Direction: {'positive' if self.is_positive_direction else 'negative'}"
+            )
+            logger.info(f"   • Token space: {self.max_tokens:,}")
+            logger.info(f"   • Batch size: {self.batch_size}")
 
             return True
         else:
@@ -345,60 +323,39 @@ class SpiderProcessor:
 
             state.spider_state = SpiderState()
 
-        # Update the spider state
-        state.spider_state.total_token_space = self.total_token_space
-        state.spider_state.current_position = self.current_position
-        state.spider_state.step_size = self.step_size
-        state.spider_state.start_position = self.start_position
-        state.spider_state.tokens_visited = self.tokens_visited
-        state.spider_state.seed_data = self.seed_data
+        # Update the spider state with new simplified fields
+        state.spider_state.seed = self.seed
+        state.spider_state.iteration_count = self.iteration_count
+        state.spider_state.is_positive_direction = self.is_positive_direction
 
         # Save to disk
         self.state_manager.save_spider_state(state.spider_state)
 
-    def _initialize_walk_parameters(self, state: AppState) -> bool:
-        """Initialize parameters for deterministic walk."""
+    def _initialize_spider_parameters(self, state: AppState) -> bool:
+        """Initialize parameters for bidirectional exploration."""
         # First try to load from previous session
         if self._load_spider_state(state):
             return True
 
         # If no previous state, initialize fresh
-        logger.info("Initializing deterministic coverage algorithm...")
+        logger.info("Initializing bidirectional exploration algorithm...")
 
         try:
-            # Get total token count
-            self.total_token_space = HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS
+            # Generate random seed in the middle range of token space
+            # This avoids starting at the very beginning or end
+            upper_bound = int(self.max_tokens * 0.75)
+            lower_bound = int(self.max_tokens * 0.25)
+            self.seed = random.randint(lower_bound, upper_bound)
 
-            # Generate unique start position based on machine/time
-            import platform
-            import os
+            # Start fresh
+            self.iteration_count = 0
+            self.is_positive_direction = True
 
-            self.seed_data = f"{platform.node()}{os.getpid()}{int(time.time())}"
-            hash_digest = hashlib.md5(self.seed_data.encode()).hexdigest()
-            seed = int(hash_digest[:8], 16)
-
-            # Random start position based on unique seed
-            self.start_position = seed % self.total_token_space
-            self.current_position = self.start_position
-
-            # Select prime step size based on seed
-            step_index = seed % len(self.prime_steps)
-            self.step_size = self.prime_steps[step_index]
-
-            # Reset visited counter for new session
-            self.tokens_visited = 0
-
-            logger.info(f"Coverage algorithm initialized:")
-            logger.info(f"   • Token space: {self.total_token_space:,}")
-            logger.info(f"   • Start position: {self.start_position:,}")
-            logger.info(f"   • Step size: {self.step_size:,}")
-            logger.info(f"   • Batch size: {Config.DEFAULT_SPIDER_BATCH_SIZE}")
-            logger.info(
-                f"   • Batch-aware step: {self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE:,}"
-            )
-            logger.info(
-                f"   • Estimated positions per cycle: {self.total_token_space // (self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE):,}"
-            )
+            logger.info("Bidirectional exploration initialized:")
+            logger.info(f"   • Token space: {self.max_tokens:,}")
+            logger.info(f"   • Exploration seed: {self.seed:,}")
+            logger.info(f"   • Batch size: {self.batch_size}")
+            logger.info(f"   • Starting direction: positive")
 
             # Save initial state
             self._save_spider_state(state)
@@ -406,104 +363,101 @@ class SpiderProcessor:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to initialize walk parameters: {e}")
+            logger.error(f"Failed to initialize spider parameters: {e}")
             return False
 
-    def _get_next_batch_offset(self, state: AppState) -> int:
-        """
-        Calculate next offset using deterministic walk with batch-aware stepping.
+    def _generate_random_seed(self) -> int:
+        """Generate a random seed in the middle range of token space."""
+        upper_bound = int(self.max_tokens * 0.75)
+        lower_bound = int(self.max_tokens * 0.25)
+        return random.randint(lower_bound, upper_bound)
 
-        This ensures proper coverage by considering that each position fetches
-        a batch of tokens, not just a single token.
+    def _get_next_token_offset(self, state: AppState) -> int:
         """
-        if self.current_position is None:
-            if not self._initialize_walk_parameters(state):
+        Calculate next offset using bidirectional exploration.
+
+        This algorithm:
+        1. Starts from a random seed position
+        2. Alternates between positive and negative directions
+        3. Gradually explores outward from the seed
+        4. Ensures systematic coverage without complex mathematics
+        """
+        if self.seed is None:
+            if not self._initialize_spider_parameters(state):
                 # Fallback to random if initialization fails
-                import random
+                return random.randint(0, self.max_tokens)
 
-                return random.randint(0, HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS)
+        # Calculate offset distance based on iteration count
+        offset_distance = self.iteration_count * self.batch_size
 
-        # Get current position
-        offset = self.current_position
+        if self.is_positive_direction:
+            # Positive direction: seed + (iteration * batch_size)
+            target_offset = self.seed + offset_distance
 
-        # Calculate next position considering batch size to avoid gaps
-        # We use step_size * batch_size to ensure we don't skip tokens
-        batch_aware_step = self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE
-        self.current_position = (
-            self.current_position + batch_aware_step
-        ) % self.total_token_space
-        self.tokens_visited += 1
+            # Switch to negative direction for next iteration
+            self.is_positive_direction = False
+        else:
+            # Negative direction: seed - (iteration * batch_size)
+            target_offset = self.seed - offset_distance
 
-        # Save updated state after each step
+            # Handle underflow by wrapping to the end
+            if target_offset < 0:
+                target_offset = (
+                    self.max_tokens + target_offset
+                )  # target_offset is negative
+
+            # Switch to positive direction and increment iteration for next time
+            self.is_positive_direction = True
+            self.iteration_count += 1
+
+        # Handle overflow by wrapping to the beginning
+        if target_offset >= self.max_tokens:
+            target_offset = target_offset - self.max_tokens
+
+        # Save state after calculating next position
         self._save_spider_state(state)
 
-        # Check if we've completed a full cycle
-        if self.current_position == self.start_position and self.tokens_visited > 1:
-            logger.success(
-                f"Full coverage cycle completed! Visited {self.tokens_visited:,} positions"
-            )
-            logger.info("Starting new cycle with different step size...")
+        return target_offset
 
-            # Start new cycle with different parameters
-            self.tokens_visited = 0
-            # Use next prime step size
-            current_index = self.prime_steps.index(self.step_size)
-            next_index = (current_index + 1) % len(self.prime_steps)
-            self.step_size = self.prime_steps[next_index]
-            logger.info(f"New step size: {self.step_size:,}")
-            logger.info(
-                f"Batch-aware step: {self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE:,}"
-            )
-
-        return offset
-
-    def _get_deterministic_tokens(
+    def _get_bidirectional_tokens(
         self, batch_size: int, state: AppState
     ) -> Optional[List[Token]]:
-        """Fetch tokens using deterministic position."""
-        offset = self._get_next_batch_offset(state)
+        """Fetch tokens using bidirectional exploration."""
+        offset = self._get_next_token_offset(state)
 
         # Use the dedicated function from tzkt.py
         return tokens(batch_size, offset)
 
-    def _log_coverage_stats(self, iteration: int, stats) -> None:
-        """Log detailed coverage statistics with batch-aware calculations."""
-        if self.total_token_space and self.tokens_visited > 0:
-            # Calculate coverage considering batch size
-            batch_aware_step = self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE
-            estimated_positions_per_cycle = self.total_token_space // batch_aware_step
-            coverage_percentage = (
-                self.tokens_visited / estimated_positions_per_cycle
-            ) * 100
-
-            logger.info(f"Coverage Stats (Iteration {iteration}):")
-            logger.info(
-                f"   • Position: {self.current_position:,}/{self.total_token_space:,}"
-            )
-            logger.info(f"   • Cycle progress: {coverage_percentage:.2f}%")
-            logger.info(f"   • Positions visited: {self.tokens_visited:,}")
-            logger.info(f"   • Batch-aware step: {batch_aware_step:,}")
-            logger.info(f"   • {stats}")
+    def _log_exploration_stats(self, iteration: int, stats, offset: int) -> None:
+        """Log detailed exploration statistics."""
+        logger.info(f"Exploration Stats (Iteration {iteration}):")
+        logger.info(f"   • Target offset: {offset:,}")
+        logger.info(f"   • Exploration seed: {self.seed:,}")
+        logger.info(f"   • Iteration count: {self.iteration_count:,}")
+        logger.info(
+            f"   • Current direction: {'positive' if self.is_positive_direction else 'negative'}"
+        )
+        logger.info(f"   • {stats}")
 
     def run_spider_mode(self, state: AppState) -> None:
         """
-        Run deterministic spider mode for systematic token discovery.
+        Run bidirectional spider mode for systematic token discovery.
 
-        This algorithm ensures:
-        1. Each user starts at a different random position
-        2. Follows a deterministic path that covers the entire space
-        3. Eventually visits every token in the database
-        4. Minimizes redundant discoveries after initial coverage
+        This algorithm:
+        1. Starts from a random seed position in the middle range
+        2. Alternates between positive and negative directions
+        3. Explores outward systematically with each iteration
+        4. Simple, predictable, and efficient coverage pattern
 
         Args:
             state: Current application state
         """
-        logger.info("Starting deterministic spider mode - systematic token coverage")
+        logger.info("Starting bidirectional spider mode - systematic exploration")
 
-        # Initialize the deterministic walk
-        if not self._initialize_walk_parameters(state):
+        # Initialize the bidirectional exploration
+        if not self._initialize_spider_parameters(state):
             logger.error(
-                "Failed to initialize coverage algorithm, falling back to basic mode"
+                "Failed to initialize spider algorithm, falling back to random mode"
             )
             self._run_fallback_spider_mode(state)
             return
@@ -515,28 +469,34 @@ class SpiderProcessor:
         try:
             while True:
                 iteration += 1
-                logger.info(f"Deterministic iteration {iteration}")
+                logger.info(f"Exploration iteration {iteration}")
 
-                # Get tokens using deterministic algorithm
-                tokens = self._get_deterministic_tokens(
-                    Config.DEFAULT_SPIDER_BATCH_SIZE, state
+                # Store current offset for logging
+                current_offset = self.seed + (
+                    self.iteration_count * self.batch_size
+                    if self.is_positive_direction
+                    else -(self.iteration_count * self.batch_size)
                 )
 
-                if not tokens:
+                # Get tokens using bidirectional exploration
+                fetched_tokens = self._get_bidirectional_tokens(self.batch_size, state)
+
+                if not fetched_tokens:
                     consecutive_empty_batches += 1
                     logger.warning(
                         f"No tokens returned (attempt {consecutive_empty_batches}/{max_empty_batches})"
                     )
 
                     if consecutive_empty_batches >= max_empty_batches:
-                        logger.warning("Too many empty batches, adjusting position...")
-                        # Jump to a different area
-                        self.current_position = (
-                            self.current_position + self.total_token_space // 4
-                        ) % self.total_token_space
+                        logger.warning("Too many empty batches, generating new seed...")
+                        # Generate new random seed to explore different area
+                        self.seed = self._generate_random_seed()
+                        self.iteration_count = 0
+                        self.is_positive_direction = True
                         consecutive_empty_batches = 0
-                        # Save state after position adjustment
+                        # Save state after seed reset
                         self._save_spider_state(state)
+                        logger.info(f"New exploration seed: {self.seed:,}")
 
                     time.sleep(Config.DEFAULT_SPIDER_DELAY * 2)
                     continue
@@ -545,24 +505,21 @@ class SpiderProcessor:
                 consecutive_empty_batches = 0
 
                 # Process tokens
-                stats = self.processor.process_tokens(tokens, state)
+                stats = self.processor.process_tokens(fetched_tokens, state)
 
-                # Log detailed coverage statistics
-                self._log_coverage_stats(iteration, stats)
+                # Log detailed exploration statistics
+                self._log_exploration_stats(iteration, stats, current_offset)
 
                 # Brief pause between iterations
                 time.sleep(Config.DEFAULT_SPIDER_DELAY)
 
         except KeyboardInterrupt:
-            logger.info("Deterministic spider mode interrupted by user")
-            final_coverage = (
-                (self.tokens_visited / self.total_token_space) * 100
-                if self.total_token_space
-                else 0
+            logger.info("Bidirectional spider mode interrupted by user")
+            logger.info(
+                f"Final state - Seed: {self.seed:,}, Iteration: {self.iteration_count:,}"
             )
-            logger.info(f"Final coverage achieved: {final_coverage:.2f}%")
         except Exception as e:
-            logger.error(f"Error in deterministic spider mode: {e}")
+            logger.error(f"Error in bidirectional spider mode: {e}")
             time.sleep(Config.DEFAULT_SPIDER_DELAY * 2)
 
     def _run_fallback_spider_mode(self, state: AppState) -> None:

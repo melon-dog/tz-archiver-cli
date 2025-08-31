@@ -19,12 +19,9 @@ logger = Logger("StateManager")
 class SpiderState:
     """Spider mode state container."""
 
-    current_position: Optional[int] = None
-    start_position: Optional[int] = None
-    step_size: Optional[int] = None
-    total_token_space: Optional[int] = None
-    tokens_visited: int = 0
-    seed_data: Optional[str] = None  # To ensure consistent initialization
+    seed: Optional[int] = None
+    iteration_count: int = 0
+    is_positive_direction: bool = True
 
 
 @dataclass
@@ -87,12 +84,10 @@ class StateManager:
             with open(self.spider_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return SpiderState(
-                    current_position=data.get("current_position"),
-                    start_position=data.get("start_position"),
-                    step_size=data.get("step_size"),
-                    total_token_space=data.get("total_token_space"),
-                    tokens_visited=data.get("tokens_visited", 0),
-                    seed_data=data.get("seed_data"),
+                    # New simplified fields
+                    seed=data.get("seed"),
+                    iteration_count=data.get("iteration_count", 0),
+                    is_positive_direction=data.get("is_positive_direction", True),
                 )
         except (json.JSONDecodeError, FileNotFoundError, IOError) as e:
             logger.error(f"Failed to load spider state: {e}")
@@ -105,12 +100,10 @@ class StateManager:
             self.spider_file.parent.mkdir(exist_ok=True)
 
             data = {
-                "current_position": spider_state.current_position,
-                "start_position": spider_state.start_position,
-                "step_size": spider_state.step_size,
-                "total_token_space": spider_state.total_token_space,
-                "tokens_visited": spider_state.tokens_visited,
-                "seed_data": spider_state.seed_data,
+                # New simplified fields
+                "seed": spider_state.seed,
+                "iteration_count": spider_state.iteration_count,
+                "is_positive_direction": spider_state.is_positive_direction,
             }
 
             with open(self.spider_file, "w", encoding="utf-8") as f:
