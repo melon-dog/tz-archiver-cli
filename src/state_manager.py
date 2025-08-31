@@ -122,9 +122,9 @@ class StateManager:
         logger.info(f"Loaded {len(processed_cids)} processed CIDs")
         logger.info(f"Loaded {len(error_cids)} error CIDs")
 
-        if spider_state.current_position is not None:
+        if spider_state.seed is not None:
             logger.info(
-                f"Loaded spider state - Position: {spider_state.current_position:,}, Visited: {spider_state.tokens_visited:,}"
+                f"Loaded spider state - Seed: {spider_state.seed}, Iteration: {spider_state.iteration_count:,}, Positive Direction: {spider_state.is_positive_direction}"
             )
         else:
             logger.info("No previous spider state found - will start fresh")
