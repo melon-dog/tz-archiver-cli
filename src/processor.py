@@ -338,7 +338,7 @@ class SpiderProcessor:
             return True
 
         # If no previous state, initialize fresh
-        logger.info("Initializing bidirectional exploration algorithm...")
+        logger.info("Initializing exploration algorithm...")
 
         try:
             # Generate random seed in the middle range of token space
@@ -351,7 +351,7 @@ class SpiderProcessor:
             self.iteration_count = 0
             self.is_positive_direction = True
 
-            logger.info("Bidirectional exploration initialized:")
+            logger.info("Exploration initialized:")
             logger.info(f"   • Token space: {self.max_tokens:,}")
             logger.info(f"   • Exploration seed: {self.seed:,}")
             logger.info(f"   • Batch size: {self.batch_size}")
@@ -514,12 +514,12 @@ class SpiderProcessor:
                 time.sleep(Config.DEFAULT_SPIDER_DELAY)
 
         except KeyboardInterrupt:
-            logger.info("Bidirectional spider mode interrupted by user")
+            logger.info("Spider mode interrupted by user")
             logger.info(
                 f"Final state - Seed: {self.seed:,}, Iteration: {self.iteration_count:,}"
             )
         except Exception as e:
-            logger.error(f"Error in bidirectional spider mode: {e}")
+            logger.error(f"Error in spider mode: {e}")
             time.sleep(Config.DEFAULT_SPIDER_DELAY * 2)
 
     def _run_fallback_spider_mode(self, state: AppState) -> None:
