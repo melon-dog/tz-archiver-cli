@@ -335,7 +335,7 @@ class SpiderProcessor:
 
             return True
         else:
-            logger.info("🆕 No previous spider session found - starting fresh")
+            logger.info("No previous spider session found - starting fresh")
             return False
 
     def _save_spider_state(self, state: AppState) -> None:
@@ -363,7 +363,7 @@ class SpiderProcessor:
             return True
 
         # If no previous state, initialize fresh
-        logger.info(" Initializing deterministic coverage algorithm...")
+        logger.info("Initializing deterministic coverage algorithm...")
 
         try:
             # Get total token count from TzKT API
@@ -398,8 +398,12 @@ class SpiderProcessor:
             logger.info(f"   • Token space: {self.total_token_space:,}")
             logger.info(f"   • Start position: {self.start_position:,}")
             logger.info(f"   • Step size: {self.step_size:,}")
+            logger.info(f"   • Batch size: {Config.DEFAULT_SPIDER_BATCH_SIZE}")
             logger.info(
-                f"   • Estimated full coverage: {self.total_token_space // Config.DEFAULT_SPIDER_BATCH_SIZE:,} iterations"
+                f"   • Batch-aware step: {self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE:,}"
+            )
+            logger.info(
+                f"   • Estimated positions per cycle: {self.total_token_space // (self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE):,}"
             )
 
             # Save initial state
@@ -412,7 +416,12 @@ class SpiderProcessor:
             return False
 
     def _get_next_batch_offset(self, state: AppState) -> int:
-        """Calculate next offset using deterministic walk."""
+        """
+        Calculate next offset using deterministic walk with batch-aware stepping.
+
+        This ensures proper coverage by considering that each position fetches
+        a batch of tokens, not just a single token.
+        """
         if self.current_position is None:
             if not self._initialize_walk_parameters(state):
                 # Fallback to random if initialization fails
@@ -423,9 +432,11 @@ class SpiderProcessor:
         # Get current position
         offset = self.current_position
 
-        # Calculate next position using modular arithmetic
+        # Calculate next position considering batch size to avoid gaps
+        # We use step_size * batch_size to ensure we don't skip tokens
+        batch_aware_step = self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE
         self.current_position = (
-            self.current_position + self.step_size
+            self.current_position + batch_aware_step
         ) % self.total_token_space
         self.tokens_visited += 1
 
@@ -435,9 +446,9 @@ class SpiderProcessor:
         # Check if we've completed a full cycle
         if self.current_position == self.start_position and self.tokens_visited > 1:
             logger.success(
-                f"🎉 Full coverage cycle completed! Visited {self.tokens_visited:,} positions"
+                f"Full coverage cycle completed! Visited {self.tokens_visited:,} positions"
             )
-            logger.info(" Starting new cycle with different step size...")
+            logger.info("Starting new cycle with different step size...")
 
             # Start new cycle with different parameters
             self.tokens_visited = 0
@@ -445,7 +456,10 @@ class SpiderProcessor:
             current_index = self.prime_steps.index(self.step_size)
             next_index = (current_index + 1) % len(self.prime_steps)
             self.step_size = self.prime_steps[next_index]
-            logger.info(f" New step size: {self.step_size:,}")
+            logger.info(f"New step size: {self.step_size:,}")
+            logger.info(
+                f"Batch-aware step: {self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE:,}"
+            )
 
         return offset
 
@@ -459,16 +473,22 @@ class SpiderProcessor:
         return tokens(batch_size, offset)
 
     def _log_coverage_stats(self, iteration: int, stats) -> None:
-        """Log detailed coverage statistics."""
+        """Log detailed coverage statistics with batch-aware calculations."""
         if self.total_token_space and self.tokens_visited > 0:
-            coverage_percentage = (self.tokens_visited / self.total_token_space) * 100
+            # Calculate coverage considering batch size
+            batch_aware_step = self.step_size * Config.DEFAULT_SPIDER_BATCH_SIZE
+            estimated_positions_per_cycle = self.total_token_space // batch_aware_step
+            coverage_percentage = (
+                self.tokens_visited / estimated_positions_per_cycle
+            ) * 100
 
-            logger.info(f" Coverage Stats (Iteration {iteration}):")
+            logger.info(f"Coverage Stats (Iteration {iteration}):")
             logger.info(
                 f"   • Position: {self.current_position:,}/{self.total_token_space:,}"
             )
-            logger.info(f"   • Coverage: {coverage_percentage:.2f}%")
-            logger.info(f"   • Step size: {self.step_size:,}")
+            logger.info(f"   • Cycle progress: {coverage_percentage:.2f}%")
+            logger.info(f"   • Positions visited: {self.tokens_visited:,}")
+            logger.info(f"   • Batch-aware step: {batch_aware_step:,}")
             logger.info(f"   • {stats}")
 
     def run_spider_mode(self, state: AppState) -> None:
@@ -484,7 +504,7 @@ class SpiderProcessor:
         Args:
             state: Current application state
         """
-        logger.info("🕷️ Starting deterministic spider mode - systematic token coverage")
+        logger.info("Starting deterministic spider mode - systematic token coverage")
 
         # Initialize the deterministic walk
         if not self._initialize_walk_parameters(state):
@@ -511,7 +531,7 @@ class SpiderProcessor:
                 if not tokens:
                     consecutive_empty_batches += 1
                     logger.warning(
-                        f"⚠️ No tokens returned (attempt {consecutive_empty_batches}/{max_empty_batches})"
+                        f"No tokens returned (attempt {consecutive_empty_batches}/{max_empty_batches})"
                     )
 
                     if consecutive_empty_batches >= max_empty_batches:
@@ -540,20 +560,20 @@ class SpiderProcessor:
                 time.sleep(Config.DEFAULT_SPIDER_DELAY)
 
         except KeyboardInterrupt:
-            logger.info("🛑 Deterministic spider mode interrupted by user")
+            logger.info("Deterministic spider mode interrupted by user")
             final_coverage = (
                 (self.tokens_visited / self.total_token_space) * 100
                 if self.total_token_space
                 else 0
             )
-            logger.info(f"📈 Final coverage achieved: {final_coverage:.2f}%")
+            logger.info(f"Final coverage achieved: {final_coverage:.2f}%")
         except Exception as e:
             logger.error(f"Error in deterministic spider mode: {e}")
             time.sleep(Config.DEFAULT_SPIDER_DELAY * 2)
 
     def _run_fallback_spider_mode(self, state: AppState) -> None:
         """Fallback to basic random mode if deterministic fails."""
-        logger.warning(" Running fallback random spider mode")
+        logger.warning("Running fallback random spider mode")
 
         iteration = 0
         while True:
