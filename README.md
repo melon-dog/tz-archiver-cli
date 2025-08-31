@@ -122,7 +122,7 @@ Optimized Wayback Machine settings:
 - `if_not_archived_within`: 31,536,000 seconds (1 year)
 - `max_concurrent_processes`: 4
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 tz-archiver-cli/
