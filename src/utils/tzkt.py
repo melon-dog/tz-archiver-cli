@@ -508,3 +508,31 @@ def block_count() -> Optional[int]:
         return int(txt)
     except Exception:
         return None
+
+
+def tokens(limit: int, offset: int) -> Optional[Tokens]:
+    """
+    Fetch tokens using a deterministic offset for systematic coverage.
+
+    Args:
+        limit: Maximum number of tokens to fetch
+        offset: Specific offset position in the token space
+
+    Returns:
+        List of tokens or None if error
+    """
+    try:
+        url = f"https://api.tzkt.io/v1/tokens?limit={limit}&offset={offset}&metadata.artifactUri.null=false"
+
+        # Basic rate limiting for TzKT
+        time.sleep(0.1)
+
+        resp = api_call(url)
+        resp.raise_for_status()
+        data = resp.json()
+
+        return _parse_tokens_list(data)
+
+    except Exception as e:
+        # Optional: log error details if needed
+        return None

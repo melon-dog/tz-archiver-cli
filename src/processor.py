@@ -16,6 +16,7 @@ from utils.tzkt import (
     contract_tokens,
     random_tokens,
     block_count,
+    tokens,
 )
 from archiver import WaybackArchiver, ArchiveResult
 from state_manager import StateManager, AppState, SpiderState
@@ -454,25 +455,8 @@ class SpiderProcessor:
         """Fetch tokens using deterministic position."""
         offset = self._get_next_batch_offset(state)
 
-        try:
-            # Use the calculated offset instead of random
-            url = f"https://api.tzkt.io/v1/tokens?limit={batch_size}&offset={offset}&metadata.artifactUri.null=false"
-
-            import requests
-
-            time.sleep(0.1)  # Basic rate limiting for TzKT
-            response = requests.get(url, timeout=15)
-            response.raise_for_status()
-            data = response.json()
-
-            # Parse tokens using existing parser
-            from utils.tzkt import _parse_tokens_list
-
-            return _parse_tokens_list(data)
-
-        except Exception as e:
-            logger.error(f"Error fetching deterministic tokens at offset {offset}: {e}")
-            return None
+        # Use the dedicated function from tzkt.py
+        return tokens(batch_size, offset)
 
     def _log_coverage_stats(self, iteration: int, stats) -> None:
         """Log detailed coverage statistics."""
