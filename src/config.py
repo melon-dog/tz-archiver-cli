@@ -13,7 +13,7 @@ class Config:
 
     # Application info
     APP_NAME = "tz-archiver-cli"
-    VERSION = "1.0.0"
+    VERSION = "1.0.1"
 
     # Wayback Machine limits
     WAYBACK_RATE_LIMIT = 12  # captures per minute
