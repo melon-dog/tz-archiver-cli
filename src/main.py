@@ -138,7 +138,7 @@ def run_spider_mode() -> None:
         state = state_manager.load_state()
 
         # Create spider processor and run
-        spider_processor = SpiderProcessor(processor)
+        spider_processor = SpiderProcessor(processor, state_manager)
         spider_processor.run_spider_mode(state)
 
     except KeyboardInterrupt:
