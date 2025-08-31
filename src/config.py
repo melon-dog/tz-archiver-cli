@@ -21,7 +21,7 @@ class Config:
 
     # Default values
     DEFAULT_TOKEN_LIMIT = 10_000
-    DEFAULT_SPIDER_BATCH_SIZE = 10_000
+    DEFAULT_SPIDER_BATCH_SIZE = 100
     DEFAULT_SPIDER_DELAY = 0.5
 
     # API settings
