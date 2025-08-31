@@ -131,10 +131,10 @@ class StateManager:
 
         if spider_state.current_position is not None:
             logger.info(
-                f"🕷️ Loaded spider state - Position: {spider_state.current_position:,}, Visited: {spider_state.tokens_visited:,}"
+                f"Loaded spider state - Position: {spider_state.current_position:,}, Visited: {spider_state.tokens_visited:,}"
             )
         else:
-            logger.info("🕷️ No previous spider state found - will start fresh")
+            logger.info("No previous spider state found - will start fresh")
 
         return AppState(
             processed_cids=processed_cids,
