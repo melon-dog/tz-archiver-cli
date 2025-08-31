@@ -59,7 +59,7 @@ python src/main.py -w tz1U7C2NVwbhdvG3fJixLLUWUyZHuXWNiF7V -l 500
 - `-l, --limit` (optional): Number of tokens to process (default: 10,000)
 - `-h, --help`: Show detailed help message with examples
 
-## 🔧 How It Works
+##  How It Works
 
 ### 1. Token Discovery
 The tool queries the TzKT API to find:
@@ -144,15 +144,7 @@ tz-archiver-cli/
 └── requirements.txt              # Python dependencies (optional)
 ```
 
-## 🏗️ Architecture
-
-The application follows solid software architecture principles:
-
-- **Dependency Injection**: Clean separation of concerns
-- **Strategy Pattern**: Pluggable components for different modes
-- **Observer Pattern**: Callback-based result handling
-- **Single Responsibility**: Each module has a focused purpose
-- **Type Safety**: Full type hints throughout the codebase
+##  Architecture
 
 ### Core Components
 
@@ -164,7 +156,7 @@ The application follows solid software architecture principles:
 - **`utils/logger.py`**: Advanced logging with ANSI colors and Windows compatibility
 - **`utils/tzkt.py`**: Fully typed TzKT API client with comprehensive dataclasses
 
-## 🌐 API Integration
+##  API Integration
 
 ### TzKT API
 
@@ -176,12 +168,12 @@ Integrates with [TzKT API](https://api.tzkt.io/) for Tezos blockchain data:
 
 ### Wayback Machine API
 
-Uses `wayback-utils` library with intelligent rate limiting:
+Uses `wayback-utils` library:
 - **Check Archive Status**: `wayback.indexed()` (doesn't count for rate limit)
 - **Submit for Archiving**: `wayback.save()` (counts for rate limit)
 - **Rate Limiting**: 12 captures/minute with sliding window algorithm
 
-## 📊 Data Persistence
+##  Data Persistence
 
 The tool automatically creates a `data/` folder in the source directory to store:
 
@@ -211,11 +203,11 @@ Data format:
 3. Ensure code follows the established patterns
 4. Submit a pull request
 
-## 📄 License
+##  License
 
 MIT License - see LICENSE file for details
 
-## ⚠️ Important Notes
+##  Important Notes
 
 - **Rate Limits**: The tool respects Wayback Machine's 12 captures/minute limit
 - **Processing Time**: Large collections may take significant time to process
