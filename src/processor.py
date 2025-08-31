@@ -363,7 +363,7 @@ class SpiderProcessor:
             return True
 
         # If no previous state, initialize fresh
-        logger.info("🔧 Initializing deterministic coverage algorithm...")
+        logger.info(" Initializing deterministic coverage algorithm...")
 
         try:
             # Get total token count from TzKT API
@@ -437,7 +437,7 @@ class SpiderProcessor:
             logger.success(
                 f"🎉 Full coverage cycle completed! Visited {self.tokens_visited:,} positions"
             )
-            logger.info("🔄 Starting new cycle with different step size...")
+            logger.info(" Starting new cycle with different step size...")
 
             # Start new cycle with different parameters
             self.tokens_visited = 0
@@ -445,7 +445,7 @@ class SpiderProcessor:
             current_index = self.prime_steps.index(self.step_size)
             next_index = (current_index + 1) % len(self.prime_steps)
             self.step_size = self.prime_steps[next_index]
-            logger.info(f"📐 New step size: {self.step_size:,}")
+            logger.info(f" New step size: {self.step_size:,}")
 
         return offset
 
@@ -463,7 +463,7 @@ class SpiderProcessor:
         if self.total_token_space and self.tokens_visited > 0:
             coverage_percentage = (self.tokens_visited / self.total_token_space) * 100
 
-            logger.info(f"📊 Coverage Stats (Iteration {iteration}):")
+            logger.info(f" Coverage Stats (Iteration {iteration}):")
             logger.info(
                 f"   • Position: {self.current_position:,}/{self.total_token_space:,}"
             )
@@ -484,9 +484,7 @@ class SpiderProcessor:
         Args:
             state: Current application state
         """
-        logger.warning(
-            "🕷️ Starting deterministic spider mode - systematic token coverage"
-        )
+        logger.info("🕷️ Starting deterministic spider mode - systematic token coverage")
 
         # Initialize the deterministic walk
         if not self._initialize_walk_parameters(state):
@@ -555,7 +553,7 @@ class SpiderProcessor:
 
     def _run_fallback_spider_mode(self, state: AppState) -> None:
         """Fallback to basic random mode if deterministic fails."""
-        logger.warning("🔄 Running fallback random spider mode")
+        logger.warning(" Running fallback random spider mode")
 
         iteration = 0
         while True:
