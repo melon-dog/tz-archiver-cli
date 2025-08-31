@@ -628,16 +628,8 @@ def tokens(limit: int, offset: int) -> Optional[Tokens]:
         List of tokens or None on error
     """
     try:
-        url = f"https://api.tzkt.io/v1/tokens?limit={limit}&offset={offset}&metadata.artifactUri.null=false"
-
-        # Apply rate limiting
-        time.sleep(0.1)
-
-        resp = api_call(url)
-        resp.raise_for_status()
-        data = resp.json()
-
-        return _parse_tokens_list(data)
+        base_url = "https://api.tzkt.io/v1/tokens"
+        return _fetch_paginated_tokens(base_url, limit, offset)
 
     except Exception:
         return None
