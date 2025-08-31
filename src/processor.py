@@ -394,7 +394,7 @@ class SpiderProcessor:
             # Reset visited counter for new session
             self.tokens_visited = 0
 
-            logger.info(f"🎯 Coverage algorithm initialized:")
+            logger.info(f"Coverage algorithm initialized:")
             logger.info(f"   • Token space: {self.total_token_space:,}")
             logger.info(f"   • Start position: {self.start_position:,}")
             logger.info(f"   • Step size: {self.step_size:,}")
