@@ -15,8 +15,8 @@ from utils.tzkt import (
     balances,
     contract_tokens,
     random_tokens,
-    block_count,
     tokens,
+    HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS,
 )
 from archiver import WaybackArchiver, ArchiveResult
 from state_manager import StateManager, AppState, SpiderState
@@ -366,14 +366,8 @@ class SpiderProcessor:
         logger.info("Initializing deterministic coverage algorithm...")
 
         try:
-            # Get total token count from TzKT API
-            total_tokens = block_count()  # This gives us a rough upper bound
-            if not total_tokens:
-                logger.warning("Could not get block count, using hardcoded estimate")
-                total_tokens = 6_000_000  # Fallback to hardcoded estimate
-
-            # Use a reasonable token space (tokens with artifacts are a subset)
-            self.total_token_space = min(total_tokens, 6_000_000)
+            # Get total token count
+            self.total_token_space = HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS
 
             # Generate unique start position based on machine/time
             import platform
@@ -427,7 +421,7 @@ class SpiderProcessor:
                 # Fallback to random if initialization fails
                 import random
 
-                return random.randint(0, 6_000_000)
+                return random.randint(0, HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS)
 
         # Get current position
         offset = self.current_position

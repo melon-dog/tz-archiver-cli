@@ -420,7 +420,7 @@ def _parse_tokens_list(data: Any) -> Optional[Tokens]:
 
 # API Configuration
 API_MAX = 10_000
-HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS = 6_000_000
+HARDCODED_CURRENT_TOKENS_WITH_ARTIFACTS = 8_000_000
 
 
 def api_call(url: str, timeout: int = 15) -> requests.Response:
