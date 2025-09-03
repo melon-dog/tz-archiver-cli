@@ -15,7 +15,7 @@ A Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/melon-dog/tz-archiver-cli.git
 cd tz-archiver-cli
 ```
 
