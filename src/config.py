@@ -13,7 +13,7 @@ class Config:
 
     # Application info
     APP_NAME = "tz-archiver-cli"
-    VERSION = "1.0.1"
+    VERSION = "1.0.2"
 
     # Wayback Machine limits
     WAYBACK_RATE_LIMIT = 12  # captures per minute
@@ -41,6 +41,7 @@ class Config:
     WAYBACK_JS_TIMEOUT = 7
     WAYBACK_DELAY_AVAILABILITY = False
     WAYBACK_IF_NOT_ARCHIVED_WITHIN = 31_536_000  # 1 year in seconds
+    USER_AGENT = f"{APP_NAME}/{VERSION}"
 
     @classmethod
     def ensure_data_dir(cls) -> None:

@@ -90,7 +90,7 @@ class WaybackArchiver:
     """Handles archiving to the Wayback Machine."""
 
     def __init__(self, access_key: str, secret_key: str):
-        self.wayback = WayBack(access_key, secret_key)
+        self.wayback = WayBack(access_key, secret_key, user_agent=Config.USER_AGENT)
         self.concurrency_manager = ConcurrencyManager()
 
     def _normalize_cid(self, cid: str) -> str:
