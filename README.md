@@ -1,6 +1,9 @@
 # TZ Archiver CLI
 
-Archiving this repository due to lack of use, please use the [website](https://archiver.jtez.xyz/)
+### This repository has been archived
+Due to low usage and the difficulty of maintaining two separate versions in parallel, I have decided to archive this project. Please use the [web](https://archiver.jtez.xyz/) version, which continues to work as usual.
+
+--- 
 
 A Python command-line tool for archiving Tezos NFTs to the Wayback Machine. This tool fetches NFT metadata from Tezos wallets using the TzKT API and automatically archives IPFS-hosted artifacts to ensure long-term preservation.
 
